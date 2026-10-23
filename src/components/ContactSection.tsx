@@ -20,39 +20,54 @@ export const ContactSection: React.FC = () => {
     setSubmitError('');
 
     try {
-      const response = await fetch(`https://formsubmit.co/ajax/${PERSONAL_INFO.email}`, {
-        method: 'POST',
-        headers: {
-          Accept: 'application/json',
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          name: formData.name.trim(),
-          email: formData.email.trim(),
-          message: formData.message.trim(),
-          _subject: `New portfolio message from ${formData.name.trim()}`,
-          _replyto: formData.email.trim(),
-          _template: 'table',
-          _captcha: false,
-          _honey: '',
-        }),
+      const target = `formsubmit-${Date.now()}`;
+      const iframe = document.createElement('iframe');
+      iframe.name = target;
+      iframe.title = 'Email submission';
+      iframe.hidden = true;
+
+      const submission = document.createElement('form');
+      submission.action = `https://formsubmit.co/${PERSONAL_INFO.email}`;
+      submission.method = 'POST';
+      submission.target = target;
+      submission.hidden = true;
+
+      const fields = {
+        name: formData.name.trim(),
+        email: formData.email.trim(),
+        message: formData.message.trim(),
+        _subject: `New portfolio message from ${formData.name.trim()}`,
+        _replyto: formData.email.trim(),
+        _template: 'table',
+        _captcha: 'false',
+        _honey: '',
+      };
+
+      Object.entries(fields).forEach(([name, value]) => {
+        const input = document.createElement('input');
+        input.name = name;
+        input.value = value;
+        submission.appendChild(input);
       });
 
-      const result: { success?: boolean; message?: string } = await response.json();
-      if (!response.ok || result.success === false) {
-        throw new Error(result.message || 'FormSubmit could not deliver the message.');
-      }
-
-      setIsSubmitting(false);
+      document.body.append(iframe, submission);
+      submission.submit();
+      window.setTimeout(() => {
+        iframe.remove();
+        submission.remove();
+      }, 60000);
       setSubmitted(true);
     } catch (error) {
-      setIsSubmitting(false);
       setSubmitError(
         error instanceof Error
           ? error.message
           : 'Message send nahi ho saka. Please try again or use the email link.',
       );
+      setIsSubmitting(false);
+      return;
     }
+
+    setIsSubmitting(false);
   };
 
   const handleDirectMail = () => {
